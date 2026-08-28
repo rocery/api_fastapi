@@ -1,17 +1,21 @@
 import hashlib
+import os
 import jwt
 
+from dotenv import load_dotenv
 from datetime import datetime, timedelta, timezone
 
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 
-from app.database import get_user_db
+from app.database import get_api_fastapi_db
 from app.model import User
 
+load_dotenv(".env")
 
-SECRET_KEY = "ganti-dengan-secret-key-yang-panjang"
+
+SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = "HS256"
 
 security = HTTPBearer()
@@ -65,7 +69,7 @@ def create_access_token(user: User):
 
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: Session = Depends(get_user_db)
+    db: Session = Depends(get_api_fastapi_db)
 ):
 
     token = credentials.credentials

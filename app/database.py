@@ -3,29 +3,36 @@ import os
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.engine import URL
 
-load_dotenv("../.env")
+load_dotenv(".env")
 
 # Database api_fastapi
-API_FASTAPI_DATABASE_URL = (
-    f"mysql+pymysql://"
-    f"{os.getenv('API_FASTAPI_DB_USER')}:{os.getenv('API_FASTAPI_DB_PASSWORD')}"
-    f"@{os.getenv('API_FASTAPI_DB_HOST')}:{os.getenv('API_FASTAPI_DB_PORT')}"
-    f"/{os.getenv('API_FASTAPI_DB_NAME')}"
+API_FASTAPI_DATABASE_URL = URL.create(
+    drivername="mysql+pymysql",
+    username=os.getenv("API_FASTAPI_DB_USER"),
+    password=os.getenv("API_FASTAPI_DB_PASSWORD"),
+    host=os.getenv("API_FASTAPI_DB_HOST"),
+    port=os.getenv("API_FASTAPI_DB_PORT"),
+    database=os.getenv("API_FASTAPI_DB_NAME")
 )
 
-IOT_DATABASE_URL = (
-    f"mysql+pymysql://"
-    f"{os.getenv('IOT_DB_USER')}:{os.getenv('IOT_DB_PASSWORD')}"
-    f"@{os.getenv('IOT_DB_HOST')}:{os.getenv('IOT_DB_PORT')}"
-    f"/{os.getenv('IOT_DB_NAME')}"
+IOT_DATABASE_URL = URL.create(
+    drivername="mysql+pymysql",
+    username=os.getenv("IOT_DB_USER"),
+    password=os.getenv("IOT_DB_PASSWORD"),
+    host=os.getenv("IOT_DB_HOST"),
+    port=os.getenv("IOT_DB_PORT"),
+    database=os.getenv("IOT_DB_NAME")
 )
 
-SISTEMIT_DATABASE_URL = (
-    f"mysql+pymysql://"
-    f"{os.getenv('SISTEMIT_DB_USER')}:{os.getenv('SISTEMIT_DB_PASSWORD')}"
-    f"@{os.getenv('SISTEMIT_DB_HOST')}:{os.getenv('SISTEMIT_DB_PORT')}"
-    f"/{os.getenv('SISTEMIT_DB_NAME')}"
+SISTEMIT_DATABASE_URL = URL.create(
+    drivername="mysql+pymysql",
+    username=os.getenv("SISTEMIT_DB_USER"),
+    password=os.getenv("SISTEMIT_DB_PASSWORD"),
+    host=os.getenv("SISTEMIT_DB_HOST"),
+    port=os.getenv("SISTEMIT_DB_PORT"),
+    database=os.getenv("SISTEMIT_DB_NAME")
 )
 
 api_fastapi_engine = create_engine(
