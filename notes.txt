@@ -1,0 +1,2 @@
+Pada model, schema, database
+Apakah bisa dipecah sehingga lebih modular jika project api semakin besar
