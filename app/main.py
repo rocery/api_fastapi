@@ -1,29 +1,24 @@
-import os
-
-from dotenv import load_dotenv
 from fastapi import FastAPI
 
-from starlette.middleware.sessions import SessionMiddleware
-
-from app.routers.auth import router as auth_router
-
-
-load_dotenv()
-
-app = FastAPI()
+from app.routers import auth
+from app.routers import device
+from app.routers import atk
 
 
-app.add_middleware(
-    SessionMiddleware,
-    secret_key=os.getenv("SESSION_SECRET")
+app = FastAPI(
+    title="Simple FastAPI API",
+    version="1.0.0"
 )
 
 
-app.include_router(auth_router)
+app.include_router(auth.router)
+app.include_router(device.router)
+app.include_router(atk.router)
 
 
 @app.get("/")
 def root():
+
     return {
-        "message": "FastAPI Auth"
+        "message": "FastAPI API is running"
     }

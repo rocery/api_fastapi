@@ -1,85 +1,46 @@
-from fastapi import APIRouter, Depends, Form, Request, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.database import get_db
-from app.model import Users
-from app.dependencies import get_current_user
+from app.database import get_user_db
+from app.schema import LoginRequest, LoginResponse
+from app.auth import authenticate_user, create_access_token
 
 
-router = APIRouter()
+router = APIRouter(
+    prefix="/auth",
+    tags=["Authentication"]
+)
 
 
-@router.post("/login")
+@router.post("/login", response_model=LoginResponse)
 def login(
-    request: Request,
-    username: str = Form(...),
-    password: str = Form(...),
-    db: Session = Depends(get_db)
+    data: LoginRequest,
+    db: Session = Depends(get_user_db)
 ):
-    user = (
-        db.query(Users)
-        .filter(
-            Users.username == username,
-            Users.password == password
-        )
-        .first()
+
+    user = authenticate_user(
+        db,
+        data.username,
+        data.password
     )
 
     if not user:
+
         raise HTTPException(
             status_code=401,
             detail="Username atau password salah"
         )
 
-    request.session["user_id"] = user.id
+    token = create_access_token(user)
 
     return {
-        "message": "Login berhasil",
+        "access_token": token,
+        "token_type": "bearer",
         "user": {
-            "id": user.id,
+            "user_id": user.user_id,
             "username": user.username,
             "name": user.name,
-            "level": user.level
+            "email": user.email,
+            "level": user.level,
         }
-    }
-
-
-@router.get("/dashboard")
-def dashboard(
-    user=Depends(get_current_user)
-):
-    return {
-        "message": "Selamat datang di dashboard",
-        "user": user
-    }
-
-
-@router.post("/logout")
-def logout(request: Request):
-    request.session.clear()
-
-    return {
-        "message": "Logout berhasil"
-    }
-    
-@router.get("/me")
-def me(
-    request: Request,
-    db: Session = Depends(get_db)
-):
-    user_id = request.session.get("user_id")
-
-    if not user_id:
-        raise HTTPException(401, "Unauthorized")
-
-    user = db.query(Users).filter(Users.id == user_id).first()
-
-    if not user:
-        raise HTTPException(401, "User tidak ditemukan")
-
-    return {
-        "id": user.id,
-        "username": user.username,
-        "name": user.name,
-        "level": user.level
     }
