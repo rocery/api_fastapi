@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.database import get_sistemit_db
-from app.model import Atk
-from app.schema import AtkResponse
-from app.auth import get_current_user
+from app.database.sistemit import get_sistemit_db
+from app.modules.atk.schema import AtkResponse
+from app.modules.atk.service import list_atk as list_atk_service
+from app.core.security import get_current_user
 
 
 router = APIRouter(
@@ -22,10 +22,4 @@ def list_atk(
     current_user = Depends(get_current_user)
 ):
 
-    items = (
-        db.query(Atk)
-        .order_by(Atk.item)
-        .all()
-    )
-
-    return items
+    return list_atk_service(db)

@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 
-from app.routers import auth
-from app.routers import device
-from app.routers import atk
+from app.modules.auth.router import router as auth_router
+from app.modules.device.router import router as device_router
+from app.modules.atk.router import router as atk_router
 
 
 app = FastAPI(
@@ -11,9 +11,9 @@ app = FastAPI(
 )
 
 
-app.include_router(auth.router)
-app.include_router(device.router)
-app.include_router(atk.router)
+app.include_router(auth_router)
+app.include_router(device_router)
+app.include_router(atk_router)
 
 
 @app.get("/")

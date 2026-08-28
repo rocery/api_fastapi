@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.database import get_iot_db
-from app.model import Device
-from app.schema import DeviceResponse
-from app.auth import get_current_user
+from app.database.iot import get_iot_db
+from app.modules.device.schema import DeviceResponse
+from app.modules.device.service import list_devices as list_devices_service
+from app.core.security import get_current_user
 
 
 router = APIRouter(
@@ -22,10 +22,4 @@ def list_devices(
     current_user = Depends(get_current_user)
 ):
 
-    devices = (
-        db.query(Device)
-        .order_by(Device.device_name)
-        .all()
-    )
-
-    return devices
+    return list_devices_service(db)
