@@ -1,2 +1,43 @@
-Pada model, schema, database
-Apakah bisa dipecah sehingga lebih modular jika project api semakin besar
+How to add a new module (example: `ocr`):
+
+1. Scaffold:
+   mkdir -p app/modules/ocr
+   touch app/modules/ocr/__init__.py app/modules/ocr/{model,schema,service,router}.py
+
+2. If new DB needed (else reuse existing):
+   - Add env vars to .env + read them in app/core/config.py (os.getenv, same pattern as API_FASTAPI_*/IOT_*/SISTEMIT_* at config.py:11)
+   - Create app/database/<name>.py (copy app/database/api_fastapi.py:1 — URL.create mysql+pymysql, create_engine pool_pre_ping=True, sessionmaker, get_<name>_db generator)
+
+3. app/modules/ocr/model.py:
+   from sqlalchemy import Column, ... ; from sqlalchemy.orm import declarative_base
+   OcrBase = declarative_base()  # one Base per DB, do not reuse UserBase/IotBase/SistemitBase
+   class Ocr(OcrBase): __tablename__ = "ocr" ; columns...
+
+4. app/modules/ocr/schema.py:
+   from pydantic import BaseModel
+   class OcrRequest/Response(BaseModel): ... ; use `str | None` for nullable, match AtkResponse pattern
+
+5. app/modules/ocr/service.py:
+   from sqlalchemy.orm import Session ; from app.modules.ocr.model import Ocr
+   def list_ocr(db: Session): ... ; def create_ocr(db: Session, data): ...  # no FastAPI imports here
+
+6. app/modules/ocr/router.py:
+   from fastapi import APIRouter, Depends ; from sqlalchemy.orm import Session
+   from app.database.<db> import get_<db>_db
+   from app.modules.ocr.schema import OcrResponse
+   from app.modules.ocr.service import list_ocr as list_ocr_service
+   from app.core.security import get_current_user  # add Depends(get_current_user) if auth required; omit for public
+   router = APIRouter(prefix="/ocr", tags=["OCR"])
+   @router.get("", response_model=list[OcrResponse])
+   def list_ocr(db: Session = Depends(get_<db>_db), current_user = Depends(get_current_user)): return list_ocr_service(db)
+
+7. app/main.py: import + include:
+   from app.modules.ocr.router import router as ocr_router
+   app.include_router(ocr_router)
+
+8. Verify:
+   venv/bin/python -m py_compile app/modules/ocr/*.py
+   venv/bin/python -c "from app.main import app; print(list(app.openapi()['paths'].keys()))"  # expect /ocr
+   # DB hosts are internal (192.168.10.220/.223) — test with tunnel or mock; auth routes always need api_fastapi DB up
+
+Conventions: keep model/schema/service/router per module; router prefix/tags at APIRouter level (main.py just includes); business logic in service.py, routers thin; use app/core/config.py for env, app/core/security.py for JWT/MD5.
