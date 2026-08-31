@@ -6,12 +6,10 @@ from app.modules.device.schema import DeviceResponse, IspSpeedtestResponse
 from app.modules.device.service import isp_speedtest_list, list_devices as list_devices_service
 from app.core.security import get_current_user
 
-
 router = APIRouter(
     prefix="/devices",
     tags=["Device"]
 )
-
 
 @router.get(
     "/list",
@@ -21,7 +19,6 @@ def list_devices(
     db: Session = Depends(get_iot_db),
     current_user = Depends(get_current_user)
 ):
-
     return list_devices_service(db)
 
 @router.get(
