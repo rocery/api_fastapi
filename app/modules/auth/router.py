@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.database.api_fastapi import get_api_fastapi_db
 from app.modules.auth.schema import LoginRequest, LoginResponse
 from app.modules.auth.service import authenticate_user
-from app.core.security import create_access_token
+from app.core.security import create_access_token, get_current_user
 
 
 router = APIRouter(
@@ -44,4 +44,17 @@ def login(
             "email": user.email,
             "level": user.level,
         }
+    }
+    
+@router.get("/me")
+def get_current_user_info(
+    current_user=Depends(get_current_user)
+):
+    return {
+        "user_id": current_user.user_id,
+        "username": current_user.username,
+        "name": current_user.name,
+        "email": current_user.email,
+        "level": current_user.level,
+        "created_date": current_user.created_date
     }
