@@ -1,0 +1,266 @@
+frontend/
+├── public/
+│   ├── favicon.ico
+│   └── logo.svg
+│
+├── src/
+│   ├── main.tsx                      # ReactDOM.createRoot, BrowserRouter/App mount
+│   ├── App.tsx                       # RouterProvider / route definitions
+│   ├── vite-env.d.ts                 # Vite type refs
+│   │
+│   ├── config/                       # mirrors app/core/config.py — centralized env/config
+│   │   ├── env.ts                    # import.meta.env wrapper (VITE_API_BASE_URL, etc.)
+│   │   └── constants.ts              # app constants (token key, expiry, pagination defaults)
+│   │
+│   ├── lib/                          # core utilities — mirrors app/core/
+│   │   ├── api.ts                    # axios/fetch instance (baseURL, Bearer interceptor, 401 redirect)
+│   │   ├── auth.ts                   # token helpers: get/set/clearToken, isExpired, jwt decode
+│   │   └── queryClient.ts            # TanStack Query client (if using React Query)
+│   │
+│   ├── api/                          # (alternative to lib/api) — keep if you prefer split per resource
+│   │   └── client.ts                 # re-export from lib/api.ts — single axios instance
+│   │
+│   ├── assets/                       # static assets
+│   │   ├── images/
+│   │   └── styles/
+│   │       ├── globals.css
+│   │       └── tailwind.css
+│   │
+│   ├── components/                   # shared / dumb UI components
+│   │   ├── ui/                       # design-system primitives (Button, Input, Card, Table, Badge)
+│   │   │   ├── Button.tsx
+│   │   │   ├── Input.tsx
+│   │   │   ├── Table.tsx
+│   │   │   └── ProtectedRoute.tsx    # auth guard — mirrors Depends(get_current_user)
+│   │   ├── layout/
+│   │   │   ├── Header.tsx
+│   │   │   ├── Sidebar.tsx
+│   │   │   └── AppLayout.tsx         # layout with Sidebar + Header + <Outlet/>
+│   │   └── feedback/
+│   │       ├── Loading.tsx
+│   │       ├── ErrorAlert.tsx
+│   │       └── EmptyState.tsx
+│   │
+│   ├── hooks/                        # shared hooks
+│   │   ├── useAuth.ts                # wraps AuthContext (user, login, logout, isAuthenticated)
+│   │   ├── usePagination.ts
+│   │   └── useDebounce.ts
+│   │
+│   ├── stores/                       # global state (choose one: Zustand / Redux / Context)
+│   │   └── authStore.ts              # Zustand store: token, user, setUser, logout — persists to localStorage
+│   │       # alternative: context/authContext.tsx if using Context API
+│   │
+│   ├── contexts/
+│   │   └── AuthContext.tsx           # provides user + token + login/logout — fetches GET /auth/me on mount
+│   │
+│   ├── routes/                       # router definitions — mirrors app/main.py include_router
+│   │   ├── index.tsx                 # createBrowserRouter / <Routes> ( /, /login, /devices/*, /atk )
+│   │   ├── ProtectedRoute.tsx        # checks localStorage token + validates via /auth/me
+│   │   └── router.tsx                # (alt) single file if not splitting
+│   │
+│   ├── types/                        # shared TS types — mirrors Pydantic schemas
+│   │   ├── auth.ts                   # User, LoginRequest, LoginResponse (sub, username, level)
+│   │   ├── device.ts                 # Device, IspSpeedtest
+│   │   ├── atk.ts                    # Atk
+│   │   └── api.ts                    # ApiError, PaginatedResponse, generic wrappers
+│   │
+│   ├── utils/
+│   │   ├── format.ts                 # formatCurrency (harga), formatDate (created_at)
+│   │   ├── validators.ts             # zod schemas for LoginRequest, period pattern YYYY-MM
+│   │   └── cn.ts                     # tailwind-merge / clsx helper
+│   │
+│   └── modules/                      # feature modules — mirrors app/modules/{auth,device,atk}/
+│       │                             # each module keeps api.ts / types.ts / hooks / components / pages
+│       │                             # pattern: model.py -> types.ts, schema.py -> types + validators, service.py -> api.ts, router.py -> pages + routes
+│       │
+│       ├── auth/                     # mirrors app/modules/auth/ (POST /auth/login, GET /auth/me)
+│       │   ├── api.ts                # login(data: LoginRequest) -> LoginResponse, fetchMe() -> User
+│       │   ├── types.ts              # LoginRequest, LoginResponse, User (user_id, username, name, email, level, created_date)
+│       │   ├── schema.ts             # zod schema for LoginRequest (if not in utils/validators)
+│       │   ├── hooks/
+│       │   │   ├── useLogin.ts       # useMutation -> POST /auth/login, stores Bearer token, 401 handling
+│       │   │   └── useMe.ts          # useQuery -> GET /auth/me (enabled when token exists)
+│       │   ├── components/
+│       │   │   └── LoginForm.tsx     # username + password (MD5 handled server-side, send plaintext)
+│       │   └── pages/
+│       │       └── LoginPage.tsx     # /login route — public, redirects to / if already authenticated
+│       │
+│       ├── device/                   # mirrors app/modules/device/ (GET /devices/list, GET /devices/isp_speedtest?server=&period=YYYY-MM)
+│       │   ├── api.ts                # listDevices() -> Device[], listIspSpeedtests(params) -> IspSpeedtest[]
+│       │   ├── types.ts              # DeviceResponse (device_id, device_name, ip_address, location, etc, ping|null), IspSpeedtestResponse
+│       │   ├── hooks/
+│       │   │   ├── useDevices.ts     # useQuery ["devices"] -> GET /devices/list (Bearer required)
+│       │   │   └── useIspSpeedtests.ts # useQuery ["isp_speedtests", server, period] -> GET /devices/isp_speedtest
+│       │   ├── components/
+│       │   │   ├── DeviceTable.tsx   # table for DeviceResponse (ping nullable)
+│       │   │   ├── DeviceFilter.tsx
+│       │   │   ├── IspSpeedtestTable.tsx
+│       │   │   └── IspSpeedtestFilter.tsx # server select + period input (YYYY-MM pattern)
+│       │   └── pages/
+│       │       ├── DeviceListPage.tsx      # /devices — ProtectedRoute, uses useDevices
+│       │       └── IspSpeedtestPage.tsx    # /devices/speedtest — query params server & period
+│       │
+│       └── atk/                      # mirrors app/modules/atk/ (GET /atk)
+│           ├── api.ts                # listAtk() -> AtkResponse[]
+│           ├── types.ts              # AtkResponse (id, varian|null, item|null, satuan|null, harga|null)
+│           ├── hooks/
+│           │   └── useAtk.ts         # useQuery ["atk"] -> GET /atk (Bearer required)
+│           ├── components/
+│           │   ├── AtkTable.tsx
+│           │   └── AtkFilter.tsx
+│           └── pages/
+│               └── AtkListPage.tsx   # /atk — ProtectedRoute
+│
+├── .env.example                      # VITE_API_BASE_URL=http://localhost:8000
+├── .env                              # gitignored — VITE_API_BASE_URL, etc.
+├── index.html                        # Vite entry
+├── package.json
+├── tsconfig.json                     # strict, path alias @/* -> src/*
+├── tsconfig.node.json
+├── vite.config.ts                    # proxy /api -> FastAPI if needed
+├── eslint.config.js
+├── prettier.config.js
+└── README.md
+
+# ─────────────────────────────────────────────────────────────────────────────
+# NOTES — How this mirrors the backend (app/)
+# ─────────────────────────────────────────────────────────────────────────────
+# Backend (FastAPI)                          Frontend (React + TS)
+# ─────────────────────────────────────────────────────────────────────────────
+# app/main.py (FastAPI + include_router)  -> src/App.tsx + src/routes/index.tsx
+#   GET /                                 -> src/pages/HomePage.tsx or redirect to /devices
+#   POST /auth/login (public)             -> src/modules/auth/pages/LoginPage.tsx
+#   GET  /auth/me (Bearer)                -> src/contexts/AuthContext.tsx + useMe.ts (session restore)
+#   GET  /devices/list (Bearer)           -> src/modules/device/pages/DeviceListPage.tsx
+#   GET  /devices/isp_speedtest (Bearer)  -> src/modules/device/pages/IspSpeedtestPage.tsx (?server & ?period=YYYY-MM)
+#   GET  /atk (Bearer)                     -> src/modules/atk/pages/AtkListPage.tsx
+#
+# app/core/config.py (env, SECRET_KEY)    -> src/config/env.ts (VITE_API_BASE_URL)
+# app/core/security.py                    -> src/lib/auth.ts + src/lib/api.ts
+#   md5_password (server-only)            ->   no frontend hashing — send plaintext, 401 detail "Username atau password salah"
+#   create_access_token (HS256, 8h,       ->   localStorage.setItem("access_token", res.access_token)
+#     sub=user_id, username, level)       ->   jwt-decode on frontend only for display/expiry check
+#   get_current_user (HTTPBearer)         ->   axios interceptor: Authorization: Bearer <token>
+#                                            + ProtectedRoute checks token + GET /auth/me revalidation
+#
+# app/database/{api_fastapi,iot,sistemit} -> src/lib/api.ts single baseURL (backend already multiplexes DBs)
+#   3 MySQL DBs, 3 declarative bases      ->   frontend is DB-agnostic — just calls REST endpoints
+#
+# app/modules/auth/model.py (User)       -> src/modules/auth/types.ts (User) + src/types/auth.ts
+# app/modules/auth/schema.py             -> src/modules/auth/types.ts + schema.ts (zod: LoginRequest)
+# app/modules/auth/service.py            -> src/modules/auth/api.ts (authenticate_user -> login())
+# app/modules/auth/router.py             -> src/modules/auth/pages/* + routes
+#
+# app/modules/device/model.py            -> src/modules/device/types.ts
+#   Device / IspSpeedtest (IotBase)      ->   DeviceResponse / IspSpeedtestResponse
+# app/modules/device/schema.py           -> src/modules/device/types.ts
+# app/modules/device/service.py          -> src/modules/device/api.ts
+# app/modules/device/router.py           -> src/modules/device/pages/*
+#
+# app/modules/atk/model.py (SistemitBase)-> src/modules/atk/types.ts
+# app/modules/atk/schema.py              -> src/modules/atk/types.ts
+# app/modules/atk/service.py             -> src/modules/atk/api.ts
+# app/modules/atk/router.py              -> src/modules/atk/pages/*
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# SCAFFOLD COMMANDS (Vite + React + TS)
+# ─────────────────────────────────────────────────────────────────────────────
+# npm create vite@latest frontend -- --template react-ts
+# cd frontend && npm install
+# npm install react-router-dom axios @tanstack/react-query jwt-decode zod
+# npm install -D tailwindcss postcss autoprefixer eslint prettier
+# npx tailwindcss init -p
+#
+# Path alias (tsconfig.json):
+#   "compilerOptions": { "baseUrl": ".", "paths": { "@/*": ["src/*"] } }
+#   vite.config.ts: resolve.alias["@"] = "/src"
+#
+# Env (src/config/env.ts):
+#   export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# SHADCN/UI INSTALLATION (Vite + React + TS + Tailwind)
+# ─────────────────────────────────────────────────────────────────────────────
+# Prereqs: Tailwind CSS must be installed and configured (see SCAFFOLD above).
+# Docs: https://ui.shadcn.com/docs/installation/vite
+#
+# 1. Init shadcn (creates components.json, sets alias @ -> src):
+#    npx shadcn@latest init
+#    # Prompts — recommended answers for this project:
+#    #   Style ............ Default
+#    #   Base color ....... Slate / Zinc (pick one, consistent across app)
+#    #   CSS variables .... Yes
+#    #   Tailwind config .. tailwind.config.js (or .ts)
+#    #   Components alias . @/components
+#    #   Utils alias ...... @/lib/utils  (creates src/lib/utils.ts with cn() helper)
+#    #   RSC .............. No (Vite, not Next.js)
+#    #   TS config ........ Yes — will patch tsconfig.json + vite.config.ts with @ alias
+#
+#    # What it does:
+#    #   - Creates components.json (shadcn config: tailwind.css, baseColor, cssVariables, aliases)
+#    #   - Updates tailwind.config.js (content globs, shadcn preset)
+#    #   - Updates src/assets/styles/globals.css or src/index.css (CSS variables for theming)
+#    #   - Creates src/lib/utils.ts:
+#    #       import { clsx } from "clsx"; import { twMerge } from "tailwind-merge";
+#    #       export function cn(...inputs) { return twMerge(clsx(inputs)); }
+#    #     -> If you already have src/utils/cn.ts, delete it and use @/lib/utils instead (or keep as re-export)
+#
+# 2. Verify path alias after init (shadcn patches these; confirm they match SCAFFOLD above):
+#    # tsconfig.json
+#    {
+#      "compilerOptions": {
+#        "baseUrl": ".",
+#        "paths": { "@/*": ["./src/*"] }
+#      }
+#    }
+#    # vite.config.ts
+#    import path from "path";
+#    export default defineConfig({
+#      resolve: { alias: { "@": path.resolve(__dirname, "./src") } }
+#    });
+#
+# 3. Add core components (used by auth/device/atk modules):
+#    npx shadcn@latest add button input label card table badge avatar dropdown-menu dialog sheet skeleton toast form
+#    # This creates src/components/ui/{button,input,label,card,table,...}.tsx
+#    # These replace the manual src/components/ui/ placeholders listed in the tree above.
+#
+# 4. Additional components as needed per page:
+#    npx shadcn@latest add select          # for IspSpeedtestFilter server select, AtkFilter
+#    npx shadcn@latest add pagination      # for DeviceTable / AtkTable pagination
+#    npx shadcn@latest add calendar popover # for period (YYYY-MM) filter if using date picker
+#    npx shadcn@latest add tabs            # if splitting /devices/list vs /devices/speedtest into tabs
+#    npx shadcn@latest add alert           # for ErrorAlert / 401 "Username atau password salah"
+#    npx shadcn@latest add separator breadcrumb # for AppLayout Sidebar/Header
+#
+# 5. Theming (optional):
+#    # components.json -> "cssVariables": true means colors are CSS vars in globals.css
+#    # Edit src/index.css or src/assets/styles/globals.css :root / .dark for brand colors
+#    # Toggle dark mode via class on <html>: add <script> or use next-themes alternative for Vite
+#    #   npm install next-themes  (works with Vite) or simple useState + localStorage toggle
+#
+# 6. Usage example (in LoginForm.tsx / DeviceTable.tsx):
+#    import { Button } from "@/components/ui/button";
+#    import { Input } from "@/components/ui/input";
+#    import { Card, CardHeader, CardContent } from "@/components/ui/card";
+#    import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
+#    # cn() helper from @/lib/utils for conditional Tailwind classes
+#
+# 7. Updating shadcn:
+#    npx shadcn@latest diff    # check for upstream component updates
+#    # Re-run `npx shadcn@latest add <component>` to overwrite with latest version
+#
+# Notes:
+# - shadcn/ui is NOT an npm package — components are copied into src/components/ui/ (you own the code).
+# - Requires tailwindcss + tailwind-merge + clsx + class-variance-authority (installed by `init`).
+# - Keep src/components/ui/ git-tracked; customize variants directly (e.g., Button size for tables).
+# - If you used npm create vite, run `npx shadcn@latest init -d` for defaults (non-interactive).
+#
+# Adding a new module (e.g. ocr) — mirrors notes.txt backend steps:
+#   mkdir -p src/modules/ocr/{hooks,components,pages}
+#   touch src/modules/ocr/{api.ts,types.ts,schema.ts}
+#   1. types.ts  — define Request/Response interfaces (str | null for nullable, like AtkResponse)
+#   2. api.ts    — axios calls to /ocr endpoints (import api from "@/lib/api")
+#   3. hooks/useOcr.ts — useQuery/useMutation wrappers
+#   4. pages/OcrListPage.tsx — ProtectedRoute if needed (Depends(get_current_user) analogue)
+#   5. routes/index.tsx — add <Route path="/ocr" element={<ProtectedRoute><OcrListPage/></ProtectedRoute>} />
+#
